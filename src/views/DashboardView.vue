@@ -242,7 +242,6 @@ const getCategoryState = (category: string) => {
 }
 
 const pushEnabled = useStorage('sw-push-enabled', false)
-const pushTokens = useStorage<string[]>('sw-push-tokens', [])
 
 function navigateToHistory(f: { year?: number; month?: number; category?: string; memberId?: string }) {
   void router.push({
