@@ -15,7 +15,6 @@ const threshold = props.threshold ?? 80
 const resistance = props.resistance ?? 2.5
 
 const startY = ref(0)
-const currentY = ref(0)
 const pulling = ref(false)
 const pullDistance = ref(0)
 const isAtTop = ref(true)
