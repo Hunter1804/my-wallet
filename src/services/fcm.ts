@@ -12,9 +12,9 @@ export async function requestPushPermission(familyId: string) {
         console.warn('VITE_FCM_VAPID_KEY is not defined in .env. FCM push registration may fail if missing.');
       }
 
-      // Ép browser ĐĂNG KÝ MỚI và CẬP NHẬT file SW xịn này, ghi đè lên mọi SW cũ đang bị treo.
-      const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      await reg.update();
+      // Thay vì tự đăng ký riêng một con SW làm sung đột với Vite PWA,
+      // ta lấy con SW chính của website (nó đã import firebase bên trong vite.config.ts)
+      const reg = await navigator.serviceWorker.ready;
 
       const token = await getToken(messaging, {
         vapidKey,
@@ -39,7 +39,7 @@ export async function requestPushPermission(familyId: string) {
 export async function disablePush() {
   try {
     const messaging = getMessaging();
-    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const reg = await navigator.serviceWorker.ready;
     // Get the current token so we can delete it from Firestore
     const token = await getToken(messaging, { serviceWorkerRegistration: reg }).catch(() => null);
 
@@ -62,7 +62,6 @@ export function setupMessageListener() {
 
     // Bắt sự kiện PostMessage độc quyền từ SW của dự án
     navigator.serviceWorker.addEventListener('message', (event) => {
-      console.log('event', event);
       if (event.data?.type === 'UPDATE_BADGE') {
         console.log('Cập nhật Badge số hiệu:', event.data.badgeCount);
       }
