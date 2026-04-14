@@ -170,6 +170,12 @@ const formattedBudget = computed({
   }
 })
 
+function formatInput(val: string) {
+  const numeric = val.replace(/\D/g, '')
+  if (!numeric) return ''
+  return Number(numeric).toLocaleString('vi-VN')
+}
+
 const budgetUsed = computed(() => currentMonthTotal.value)
 const budgetLimit = computed(() => monthlyBudget.value ?? 0)
 const budgetPct = computed(() => {
@@ -192,10 +198,11 @@ const budgetState = computed(() => {
 
 function openBudgetEditor() {
   budgetDraft.value = budgetLimit.value ? String(budgetLimit.value) : ''
-  // Initialize category drafts
+  // Initialize category drafts with formatting
   categoryBudgetsDraft.value = {}
   expenseCategories.value.forEach(cat => {
-    categoryBudgetsDraft.value[cat] = categoryBudgets.value[cat] ? String(categoryBudgets.value[cat]) : ''
+    const val = categoryBudgets.value[cat]
+    categoryBudgetsDraft.value[cat] = val ? formatInput(String(val)) : ''
   })
   budgetEditing.value = true
 }
@@ -434,7 +441,7 @@ async function togglePush() {
                 inputmode="numeric"
                 placeholder="0"
                 class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                @input="categoryBudgetsDraft[cat] = (categoryBudgetsDraft[cat] || '').replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+                @input="categoryBudgetsDraft[cat] = formatInput(String(categoryBudgetsDraft[cat]))"
               />
             </div>
           </div>
