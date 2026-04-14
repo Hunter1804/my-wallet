@@ -9,6 +9,7 @@ import { memberAccentDotClass, memberAccentSoftClass } from '@/utils/memberAccen
 const props = defineProps<{
   expense: Expense
   payer?: Member
+  isOwner?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -58,7 +59,8 @@ const when = computed(() =>
         </p>
         <button
           type="button"
-          class="mt-2 cursor-pointer text-xs font-semibold text-rose-600 opacity-0 transition group-hover:opacity-100 hover:text-rose-700 focus-visible:opacity-100 focus-visible:outline-none dark:text-rose-400 dark:hover:text-rose-300"
+          class="mt-2 cursor-pointer text-xs font-semibold text-rose-600 transition hover:text-rose-700 focus-visible:outline-none dark:text-rose-400 dark:hover:text-rose-300"
+          :class="isOwner ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'"
           @click="emit('delete', expense.id)"
         >
           Xóa

@@ -72,7 +72,7 @@ export function setupMessageListener() {
       if (event.data?.type === 'FCM_DATA') {
         const payload = event.data.payload?.data;
         if (payload?.title && payload?.body) {
-          alert(`${payload.title}\n${payload.body}`);
+
         }
       }
     });

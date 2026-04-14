@@ -156,6 +156,7 @@ function onDelete(id: string) {
         :key="e.id"
         :expense="e"
         :payer="(store.memberById(e.payerId) as any)"
+        :is-owner="e.payerId === auth.currentUser?.id"
         @delete="onDelete"
       />
 
