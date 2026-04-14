@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import BottomTabBar from '@/components/BottomTabBar.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import PullToRefresh from '@/components/PullToRefresh.vue'
 import { useWalletStore } from '@/stores/wallet'
 import { storeToRefs } from 'pinia'
 
@@ -10,6 +11,16 @@ const route = useRoute()
 const title = computed(() => (route.meta.title as string) ?? 'Spending Wallet')
 const wallet = useWalletStore()
 const { familyName } = storeToRefs(wallet)
+
+const isRefreshing = ref(false)
+
+async function handleRefresh() {
+  isRefreshing.value = true
+  // Small delay for visual feedback before reload
+  setTimeout(() => {
+    window.location.reload()
+  }, 800)
+}
 </script>
 
 <template>
@@ -42,7 +53,9 @@ const { familyName } = storeToRefs(wallet)
       </header>
 
       <main class="flex-1">
-        <slot />
+        <PullToRefresh :refreshing="isRefreshing" @refresh="handleRefresh">
+          <slot />
+        </PullToRefresh>
       </main>
     </div>
 
