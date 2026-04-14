@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { parseISO } from 'date-fns'
 import { useWalletStore } from '@/stores/wallet'
@@ -10,19 +11,45 @@ import { useAuthStore } from '@/stores/auth'
 
 const store = useWalletStore()
 const auth = useAuthStore()
+const router = useRouter()
+const route = useRoute()
 const { membersUi, expensesUi } = storeToRefs(store)
 const categories = store.categories
-
-onMounted(() => {
-  void store.refreshMembers()
-  void store.refreshSettings()
-  void store.refreshExpenses()
-})
 
 const year = ref<number | 'all'>('all')
 const month = ref<number | 'all'>('all')
 const memberId = ref<string | 'all'>('all')
 const category = ref<string | 'all'>('all')
+
+function syncFiltersFromQuery() {
+  if (route.query.year) year.value = route.query.year === 'all' ? 'all' : Number(route.query.year)
+  else year.value = 'all'
+
+  if (route.query.month) month.value = route.query.month === 'all' ? 'all' : Number(route.query.month)
+  else month.value = 'all'
+
+  if (route.query.memberId) memberId.value = route.query.memberId as string
+  else memberId.value = 'all'
+
+  if (route.query.category) category.value = route.query.category as string
+  else category.value = 'all'
+}
+
+onMounted(() => {
+  void store.refreshMembers()
+  void store.refreshSettings()
+  syncFiltersFromQuery()
+  void store.refreshExpenses(filters.value)
+})
+
+// Watch for URL changes (back/forward navigation)
+watch(
+  () => route.query,
+  () => {
+    syncFiltersFromQuery()
+  },
+  { deep: true }
+)
 
 const filters = computed<HistoryFilters>(() => ({
   year: year.value,
@@ -35,6 +62,20 @@ watch(
   filters,
   (f) => {
     void store.refreshExpenses(f)
+    // Update URL query params only if they differ from current filters to avoid redundant history entries
+    const currentQuery = { ...route.query }
+    const nextQuery: any = {
+      ...currentQuery,
+      year: f.year === 'all' ? undefined : String(f.year),
+      month: f.month === 'all' ? undefined : String(f.month),
+      memberId: f.memberId === 'all' ? undefined : f.memberId,
+      category: f.category === 'all' ? undefined : f.category,
+    }
+
+    // Stringify comparison to see if we actually need to replace
+    if (JSON.stringify(currentQuery) !== JSON.stringify(nextQuery)) {
+      void router.replace({ query: nextQuery })
+    }
   },
   { deep: true },
 )

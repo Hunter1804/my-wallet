@@ -15,6 +15,7 @@ export interface FamilySettings {
   sharedPinUpdatedAt?: Timestamp;
   sharedPinUpdatedByUserId?: string;
   monthlyBudget: number;
+  categoryBudgets?: Record<string, number>;
   categories: string[];
 }
 

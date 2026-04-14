@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useWalletStore } from '@/stores/wallet'
 import StatCard from '@/components/StatCard.vue'
@@ -13,7 +14,8 @@ import { useStorage } from '@vueuse/core'
 
 const auth = useAuthStore()
 const store = useWalletStore()
-const { membersUi, currentMonthTotal, monthOverMonthDelta, monthlyBudget, statsYear, statsCategories, statsMembers } =
+const router = useRouter()
+const { membersUi, currentMonthTotal, monthOverMonthDelta, monthlyBudget, categoryBudgets, categorySpentCurrentMonth, statsYear, statsCategories, statsMembers, categories: expenseCategories } =
   storeToRefs(store)
 
 const now = new Date()
@@ -155,6 +157,8 @@ const deltaTrend = computed(() => {
 
 const budgetEditing = ref(false)
 const budgetDraft = ref('')
+const categoryBudgetsDraft = ref<Record<string, string>>({})
+const budgetViewMode = ref<'total' | 'category'>('total')
 
 const formattedBudget = computed({
   get: () => {
@@ -188,22 +192,69 @@ const budgetState = computed(() => {
 
 function openBudgetEditor() {
   budgetDraft.value = budgetLimit.value ? String(budgetLimit.value) : ''
+  // Initialize category drafts
+  categoryBudgetsDraft.value = {}
+  expenseCategories.value.forEach(cat => {
+    categoryBudgetsDraft.value[cat] = categoryBudgets.value[cat] ? String(categoryBudgets.value[cat]) : ''
+  })
   budgetEditing.value = true
 }
 
 function saveBudget() {
-  const raw = budgetDraft.value.replace(/\s/g, '').replace(',', '.')
-  const n = Math.round(Number(raw))
-  store.setMonthlyBudget(Number.isFinite(n) ? n : 0)
+  if (budgetViewMode.value === 'total') {
+    const raw = budgetDraft.value.replace(/\D/g, '')
+    const n = Math.round(Number(raw))
+    store.setMonthlyBudget(Number.isFinite(n) ? n : 0)
+  } else {
+    const newBudgets: Record<string, number> = {}
+    Object.entries(categoryBudgetsDraft.value).forEach(([cat, val]) => {
+      const n = Math.round(Number(val.replace(/\D/g, '')))
+      if (n > 0) newBudgets[cat] = n
+    })
+    store.setCategoryBudgets(newBudgets)
+  }
   budgetEditing.value = false
 }
 
 function clearBudget() {
-  store.setMonthlyBudget(0)
+  if (budgetViewMode.value === 'total') {
+    store.setMonthlyBudget(0)
+  } else {
+    store.setCategoryBudgets({})
+  }
   budgetEditing.value = false
 }
 
+const getCategoryProgress = (category: string) => {
+  const spent = categorySpentCurrentMonth.value[category] || 0
+  const limit = categoryBudgets.value[category] || 0
+  if (!limit) return 0
+  return Math.min(100, Math.round((spent / limit) * 100))
+}
+
+const getCategoryState = (category: string) => {
+  const spent = categorySpentCurrentMonth.value[category] || 0
+  const limit = categoryBudgets.value[category] || 0
+  if (!limit) return 'unset'
+  if (spent > limit) return 'over'
+  if ((spent / limit) >= 0.85) return 'warn'
+  return 'ok'
+}
+
 const pushEnabled = useStorage('sw-push-enabled', false)
+const pushTokens = useStorage<string[]>('sw-push-tokens', [])
+
+function navigateToHistory(f: { year?: number; month?: number; category?: string; memberId?: string }) {
+  void router.push({
+    name: 'history',
+    query: {
+      year: f.year,
+      month: f.month,
+      category: f.category,
+      memberId: f.memberId,
+    }
+  })
+}
 
 async function togglePush() {
   if (pushEnabled.value) {
@@ -248,23 +299,54 @@ async function togglePush() {
       />
       <div class="relative">
         <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Hạn mức chi tiêu
-            </p>
-            <h2 class="mt-1 font-display text-lg font-semibold text-slate-900 dark:text-white">
-              {{
-                budgetLimit
-                  ? `${formatCurrencyVnd(budgetUsed)} / ${formatCurrencyVnd(budgetLimit)}`
-                  : 'Chưa đặt hạn mức'
-              }}
-            </h2>
-            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">
-              <span v-if="budgetState === 'unset'">Đặt hạn mức để theo dõi và kiểm soát chi tiêu tháng.</span>
-              <span v-else-if="budgetState === 'over'">Bạn đã vượt hạn mức. Xem lại lịch sử để tối ưu.</span>
-              <span v-else-if="budgetState === 'warn'">Sắp chạm hạn mức. Cân nhắc điều chỉnh kế hoạch.</span>
-              <span v-else>Còn lại {{ formatCurrencyVnd(budgetRemaining) }}.</span>
-            </p>
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Hạn mức chi tiêu
+              </p>
+              <div class="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+                <button
+                  type="button"
+                  class="px-2 py-0.5 text-[10px] font-bold rounded-md transition-all"
+                  :class="budgetViewMode === 'total' ? 'bg-white dark:bg-slate-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-slate-500'"
+                  @click="budgetViewMode = 'total'"
+                >
+                  Tổng
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-0.5 text-[10px] font-bold rounded-md transition-all"
+                  :class="budgetViewMode === 'category' ? 'bg-white dark:bg-slate-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-slate-500'"
+                  @click="budgetViewMode = 'category'"
+                >
+                  Hạng mục
+                </button>
+              </div>
+            </div>
+
+            <div v-if="budgetViewMode === 'total'">
+              <h2 class="mt-1 font-display text-lg font-semibold text-slate-900 dark:text-white">
+                {{
+                  budgetLimit
+                    ? `${formatCurrencyVnd(budgetUsed)} / ${formatCurrencyVnd(budgetLimit)}`
+                    : 'Chưa đặt hạn mức'
+                }}
+              </h2>
+              <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                <span v-if="budgetState === 'unset'">Đặt hạn mức để theo dõi và kiểm soát chi tiêu tháng.</span>
+                <span v-else-if="budgetState === 'over'">Bạn đã vượt hạn mức. Xem lại lịch sử để tối ưu.</span>
+                <span v-else-if="budgetState === 'warn'">Sắp chạm hạn mức. Cân nhắc điều chỉnh kế hoạch.</span>
+                <span v-else>Còn lại {{ formatCurrencyVnd(budgetRemaining) }}.</span>
+              </p>
+            </div>
+            <div v-else>
+              <h2 class="mt-1 font-display text-lg font-semibold text-slate-900 dark:text-white">
+                Theo hạng mục
+              </h2>
+              <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                Chi tiết hạn mức riêng cho từng mục chi tiêu.
+              </p>
+            </div>
           </div>
 
           <button
@@ -273,11 +355,12 @@ async function togglePush() {
             class="cursor-pointer rounded-2xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
             @click="openBudgetEditor"
           >
-            {{ budgetLimit ? 'Chỉnh' : 'Đặt' }}
+            {{ (budgetViewMode === 'total' ? budgetLimit : Object.keys(categoryBudgets).length) ? 'Chỉnh' : 'Đặt' }}
           </button>
         </div>
 
-        <div class="mt-4">
+        <!-- Total View Progress -->
+        <div v-if="budgetViewMode === 'total'" class="mt-4">
           <div class="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
             <div
               class="h-full rounded-full transition-[width] duration-500 ease-out"
@@ -297,46 +380,89 @@ async function togglePush() {
           </div>
         </div>
 
+        <!-- Category View Progress -->
+        <div v-else class="mt-4 space-y-3">
+          <div v-for="cat in expenseCategories" :key="cat">
+            <template v-if="categoryBudgets[cat]">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <span class="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight">{{ cat }}</span>
+                <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                  {{ formatCurrencyVnd(categorySpentCurrentMonth[cat] || 0) }} / {{ formatCurrencyVnd(categoryBudgets[cat]) }}
+                </span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div
+                  class="h-full rounded-full transition-[width] duration-500 ease-out"
+                  :class="
+                    getCategoryState(cat) === 'over'
+                      ? 'bg-rose-500'
+                      : getCategoryState(cat) === 'warn'
+                        ? 'bg-amber-500'
+                        : 'bg-primary-500'
+                  "
+                  :style="{ width: `${getCategoryProgress(cat)}%` }"
+                />
+              </div>
+            </template>
+          </div>
+          <div v-if="Object.keys(categoryBudgets).length === 0" class="py-4 text-center">
+             <p class="text-xs text-slate-500 italic">Chưa có hạn mức hạng mục nào được thiết lập.</p>
+          </div>
+        </div>
+
+        <!-- Editor Modal -->
         <div
           v-if="budgetEditing"
-          class="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-950/35"
+          class="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/35"
         >
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label class="sr-only" for="budget">Hạn mức (VND)</label>
-            <div>
+          <div v-if="budgetViewMode === 'total'">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 block" for="budget">Hạn mức tổng (VND)</label>
+            <input
+              id="budget"
+              v-model="formattedBudget"
+              inputmode="numeric"
+              placeholder="Ví dụ: 8,000,000"
+              class="h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              @keyup.enter="saveBudget"
+            />
+          </div>
+          <div v-else class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+            <div v-for="cat in expenseCategories" :key="`edit-${cat}`">
+              <label class="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block mb-1" :for="`budget-${cat}`">{{ cat }}</label>
               <input
-                id="budget"
-                v-model="formattedBudget"
+                :id="`budget-${cat}`"
+                v-model="categoryBudgetsDraft[cat]"
                 inputmode="numeric"
-                placeholder="Ví dụ: 8000000"
-                class="h-14 w-full flex-1 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                @keyup.enter="saveBudget"
+                placeholder="0"
+                class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                @input="categoryBudgetsDraft[cat] = (categoryBudgetsDraft[cat] || '').replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
               />
             </div>
-            <div class="flex gap-2">
-              <button
-                type="button"
-                class="h-14 flex-1 cursor-pointer rounded-2xl bg-primary-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
-                @click="saveBudget"
-              >
-                Lưu
-              </button>
-              <button
-                type="button"
-                class="h-14 cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-600"
-                @click="budgetEditing = false"
-              >
-                Hủy
-              </button>
-              <button
-                v-if="budgetLimit"
-                type="button"
-                class="h-14 cursor-pointer rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/15"
-                @click="clearBudget"
-              >
-                Xóa
-              </button>
-            </div>
+          </div>
+
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="h-12 flex-1 min-w-[80px] cursor-pointer rounded-xl bg-primary-600 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+              @click="saveBudget"
+            >
+              Lưu
+            </button>
+            <button
+              type="button"
+              class="h-12 cursor-pointer rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
+              @click="budgetEditing = false"
+            >
+              Hủy
+            </button>
+            <button
+              v-if="(budgetViewMode === 'total' ? budgetLimit : Object.keys(categoryBudgets).length)"
+              type="button"
+              class="h-12 cursor-pointer rounded-xl border border-rose-200 bg-rose-50 px-4 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/15"
+              @click="clearBudget"
+            >
+              Xóa
+            </button>
           </div>
         </div>
       </div>
@@ -347,6 +473,8 @@ async function togglePush() {
         label="Giao dịch tháng này"
         :value="`${txCountCurrentMonth} lần`"
         hint="Số lần ghi nhận trong tháng hiện tại."
+        clickable
+        @click="navigateToHistory({ year: currentYear, month: currentMonth0 })"
       />
       <StatCard
         label="Hạng mục nổi bật"
@@ -356,6 +484,8 @@ async function togglePush() {
             ? formatCurrencyVnd(mostCategoryCurrentMonth.amount)
             : 'Chưa có dữ liệu cho tháng này'
         "
+        :clickable="!!(mostCategoryCurrentMonth && mostCategoryCurrentMonth.amount > 0)"
+        @click="mostCategoryCurrentMonth && navigateToHistory({ category: mostCategoryCurrentMonth.category })"
       />
       <StatCard
         label="Thành viên chi nhiều nhất"
@@ -365,6 +495,8 @@ async function togglePush() {
             ? formatCurrencyVnd(topSpenderCurrentMonth.amount)
             : 'Chưa có dữ liệu cho tháng này'
         "
+        :clickable="!!topSpenderCurrentMonth"
+        @click="topSpenderCurrentMonth && navigateToHistory({ memberId: topSpenderCurrentMonth.member?.id })"
       />
     </section>
 

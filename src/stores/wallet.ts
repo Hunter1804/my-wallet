@@ -40,6 +40,7 @@ export const useWalletStore = defineStore('wallet', () => {
   const expenses = ref<ApiExpense[]>([])
   const categories = ref<string[]>([...EXPENSE_CATEGORIES])
   const monthlyBudget = ref<number>(0)
+  const categoryBudgets = ref<Record<string, number>>({})
 
   const statsYear = ref<{ year: number; months: { month: number; total: number }[] } | null>(null)
   const statsCategories = ref<{ year: number; month: number; rows: { category: string; total: number }[] } | null>(null)
@@ -102,6 +103,7 @@ export const useWalletStore = defineStore('wallet', () => {
         if (data.settings) {
           const s = data.settings
           monthlyBudget.value = s.monthlyBudget || 0
+          categoryBudgets.value = s.categoryBudgets || {}
           categories.value = s.categories?.length ? s.categories : [...EXPENSE_CATEGORIES]
         }
       }
@@ -256,6 +258,13 @@ export const useWalletStore = defineStore('wallet', () => {
     await refreshSettings()
   }
 
+  async function setCategoryBudgets(budgets: Record<string, number>) {
+    await updateDoc(doc(db, 'families', getFamilyId()), {
+      'settings.categoryBudgets': budgets
+    })
+    await refreshSettings()
+  }
+
   async function updateNickname(userId: string, nickname: string, accent?: MemberAccent) {
     const targetUserId = userId === 'me' ? authStore.currentUser?.id : userId
     if (!targetUserId) return
@@ -353,6 +362,19 @@ export const useWalletStore = defineStore('wallet', () => {
     return Math.round(((cur - prev) / prev) * 100)
   })
 
+  const categorySpentCurrentMonth = computed(() => {
+    const y = new Date().getFullYear()
+    const m0 = new Date().getMonth()
+    const map: Record<string, number> = {}
+    for (const cat of categories.value) map[cat] = 0
+    for (const e of expenses.value) {
+      if (expenseInMonth(e, y, m0)) {
+        map[e.category] = (map[e.category] || 0) + e.amount
+      }
+    }
+    return map
+  })
+
   return {
     members,
     expenses,
@@ -360,6 +382,7 @@ export const useWalletStore = defineStore('wallet', () => {
     expensesUi,
     categories,
     monthlyBudget,
+    categoryBudgets,
     familyName,
     refreshMembers,
     refreshSettings,
@@ -368,6 +391,7 @@ export const useWalletStore = defineStore('wallet', () => {
     deleteExpense,
     changeFamilyPin,
     setMonthlyBudget,
+    setCategoryBudgets,
     updateFamilyName,
     updateNickname,
     removeMember,
@@ -382,6 +406,7 @@ export const useWalletStore = defineStore('wallet', () => {
     currentMonthTotal,
     previousMonthTotal,
     monthOverMonthDelta,
+    categorySpentCurrentMonth,
     expenseInMonth,
   }
 })

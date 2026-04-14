@@ -4,12 +4,16 @@ defineProps<{
   value: string
   hint?: string
   trend?: { dir: 'up' | 'down' | 'flat'; text: string }
+  clickable?: boolean
 }>()
 </script>
 
 <template>
   <article
-    class="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-soft backdrop-blur transition hover:border-primary-200/80 dark:border-slate-800 dark:bg-slate-900/60 dark:shadow-soft-dark"
+    class="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-soft backdrop-blur transition dark:border-slate-800 dark:bg-slate-900/60 dark:shadow-soft-dark"
+    :class="[
+      clickable ? 'cursor-pointer hover:border-primary-300 dark:hover:border-primary-500/50 hover:bg-white dark:hover:bg-slate-900 active:scale-[0.98]' : ''
+    ]"
   >
     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
       {{ label }}
