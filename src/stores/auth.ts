@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => currentUser.value !== null)
   const familyId = computed(() => currentUser.value?.familyId ?? null)
   const role = computed(() => currentUser.value?.role ?? null)
+  const isOwner = computed(() => currentUser.value?.role === 'owner')
 
   // Listen to Auth State automatically
   onAuthStateChanged(auth, async (firebaseUser) => {
@@ -122,6 +123,7 @@ export const useAuthStore = defineStore('auth', () => {
     familyUnlocked,
     familyId,
     role,
+    isOwner,
     login,
     register,
     verifyFamilyPin,

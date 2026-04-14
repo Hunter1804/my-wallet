@@ -9,6 +9,7 @@ import { memberAccentDotClass, memberAccentSoftClass } from '@/utils/memberAccen
 const store = useWalletStore()
 const { membersUi, familyName } = storeToRefs(store)
 const auth = useAuthStore()
+const { isOwner } = storeToRefs(auth)
 
 onMounted(() => {
   void store.refreshMembers()
@@ -170,7 +171,10 @@ function renameMember(id: string, ev: Event) {
       </div>
     </section>
 
-    <section class="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-soft backdrop-blur dark:border-slate-800 dark:bg-slate-900/60 dark:shadow-soft-dark">
+    <section
+      v-if="isOwner"
+      class="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-soft backdrop-blur dark:border-slate-800 dark:bg-slate-900/60 dark:shadow-soft-dark"
+    >
       <div class="flex items-start justify-between gap-3">
         <div>
           <h2 class="font-display text-lg font-semibold text-slate-900 dark:text-white">
@@ -267,7 +271,7 @@ function renameMember(id: string, ev: Event) {
       </div>
     </section>
 
-    <section class="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-soft backdrop-blur dark:border-slate-800 dark:bg-slate-900/60 dark:shadow-soft-dark">
+    <section v-if="isOwner" class="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-soft backdrop-blur dark:border-slate-800 dark:bg-slate-900/60 dark:shadow-soft-dark">
       <h2 class="font-display text-lg font-semibold text-slate-900 dark:text-white">
         Thêm thành viên
       </h2>
@@ -378,7 +382,7 @@ function renameMember(id: string, ev: Event) {
           </div>
 
           <button
-            v-if="row.member.id !== auth.currentUser?.id"
+            v-if="isOwner && row.member.id !== auth.currentUser?.id"
             type="button"
             class="cursor-pointer rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/15"
             @click="remove(row.member.id)"

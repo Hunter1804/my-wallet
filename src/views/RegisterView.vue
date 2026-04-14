@@ -91,8 +91,16 @@ async function submit() {
         </div>
 
         <div>
-          <label class="text-xs font-semibold text-slate-700 dark:text-slate-200">Mã PIN nhóm</label>
-          <input v-model="form.sharedPin" type="password" placeholder="Mã PIN chung" class="mt-1 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-medium shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+          <label class="text-xs font-semibold text-slate-700 dark:text-slate-200">Mã PIN nhóm (4 số)</label>
+          <input
+            v-model="form.sharedPin"
+            inputmode="numeric"
+            pattern="\d{4}"
+            maxlength="4"
+            placeholder="••••"
+            class="mt-1 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-base font-semibold tracking-[0.35em] text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            @input="form.sharedPin = form.sharedPin.replace(/\D/g, '').slice(0, 4)"
+          />
         </div>
 
         <button type="submit" class="mt-2 flex h-14 w-full items-center justify-center rounded-2xl bg-gradient-to-r from-primary-500 to-sky-600 text-sm font-semibold text-white transition hover:brightness-105 disabled:opacity-50" :disabled="!canSubmit">

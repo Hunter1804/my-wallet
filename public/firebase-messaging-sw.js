@@ -2,12 +2,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDHwZFCG0DCc4oa0jWi_6EJDwUYNiswHbs",
-  authDomain: "ewa-wallet.firebaseapp.com",
-  projectId: "ewa-wallet",
-  storageBucket: "ewa-wallet.firebasestorage.app",
-  messagingSenderId: "1076211604218",
-  appId: "1:1076211604218:web:c672f5553e395a6e028743"
+    apiKey: "AIzaSyDHwZFCG0DCc4oa0jWi_6EJDwUYNiswHbs",
+    authDomain: "ewa-wallet.firebaseapp.com",
+    projectId: "ewa-wallet",
+    storageBucket: "ewa-wallet.firebasestorage.app",
+    messagingSenderId: "1076211604218",
+    appId: "1:1076211604218:web:c672f5553e395a6e028743"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -39,7 +39,7 @@ self.addEventListener('push', async function (event) {
     event.waitUntil(
         Promise.all([
             self.registration.showNotification(title, options),
-            
+
             // Send a message to all open clients (tabs).
             self.clients.matchAll({ type: 'window', includeUncontrolled: true })
                 .then(clients => {
@@ -69,7 +69,7 @@ self.addEventListener('push', async function (event) {
 // When user clicks on notification
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
-    const url = event.notification.data?.url || "/";
+    const url = event.notification.data?.url || "/history";
 
     event.waitUntil((async () => {
         const absoluteUrl = new URL(url, self.location.origin).href;
