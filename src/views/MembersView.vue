@@ -147,6 +147,17 @@ function renameMember(id: string, ev: Event) {
   const el = ev.target as HTMLInputElement
   store.updateNickname(id, el.value).catch((e) => alert(auth.getErrorMessage(e)))
 }
+
+function canEdit(memberId: string) {
+  return isOwner.value || auth.currentUser?.id === memberId
+}
+
+const ACCENTS = ['sky', 'emerald', 'violet', 'amber', 'rose', 'cyan'] as const
+
+function changeAccent(id: string, accent: typeof ACCENTS[number]) {
+  store.updateNickname(id, store.membersUi.find(m => m.id === id)?.name ?? '', accent)
+    .catch((e) => alert(auth.getErrorMessage(e)))
+}
 </script>
 
 <template>
@@ -162,11 +173,12 @@ function renameMember(id: string, ev: Event) {
         <label class="sr-only" for="family-name">Tên gia đình</label>
         <input
           id="family-name"
-          v-model="familyName"
+          :value="familyName"
           type="text"
           autocomplete="organization"
           placeholder="Ví dụ: Gia đình Phạm"
           class="h-14 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          @change="store.updateFamilyName(($event.target as HTMLInputElement).value)"
         />
       </div>
     </section>
@@ -351,7 +363,8 @@ function renameMember(id: string, ev: Event) {
         class="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-sm backdrop-blur transition hover:border-primary-200/70 hover:shadow-soft dark:border-slate-800 dark:bg-slate-900/55 dark:hover:border-primary-500/25 dark:hover:shadow-soft-dark"
       >
         <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
+            <!-- Name badge + editable input -->
             <div class="flex flex-wrap items-center gap-2">
               <span
                 class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold"
@@ -364,15 +377,40 @@ function renameMember(id: string, ev: Event) {
                 />
                 <input
                   :value="row.member.name"
+                  :readonly="!canEdit(row.member.id)"
+                  :class="canEdit(row.member.id)
+                    ? 'cursor-text focus:outline-none focus:ring-0'
+                    : 'cursor-default pointer-events-none'"
                   class="w-[min(16rem,70vw)] bg-transparent text-sm font-semibold text-slate-900 outline-none ring-0 placeholder:text-slate-400 dark:text-white"
-                  aria-label="Tên thành viên"
-                  @change="renameMember(row.member.id, $event)"
+                  :aria-label="canEdit(row.member.id) ? 'Chỉnh tên thành viên' : 'Tên thành viên'"
+                  @change="canEdit(row.member.id) && renameMember(row.member.id, $event)"
                 />
               </span>
               <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                 {{ row.count }} giao dịch · tháng này
               </span>
             </div>
+
+            <!-- Accent picker – visible only when editable -->
+            <div v-if="canEdit(row.member.id)" class="mt-2 flex items-center gap-1.5">
+              <span class="mr-1 text-xs text-slate-400 dark:text-slate-500">Màu:</span>
+              <button
+                v-for="ac in ACCENTS"
+                :key="ac"
+                type="button"
+                :title="ac"
+                :aria-label="`Chọn màu ${ac}`"
+                class="h-5 w-5 rounded-full transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
+                :class="[
+                  memberAccentDotClass(ac),
+                  row.member.accent === ac
+                    ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-500 scale-110'
+                    : ''
+                ]"
+                @click="changeAccent(row.member.id, ac)"
+              />
+            </div>
+
             <p class="mt-3 font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
               {{ formatCurrencyVnd(row.paid) }}
             </p>
@@ -402,3 +440,4 @@ function renameMember(id: string, ev: Event) {
     </section>
   </div>
 </template>
+

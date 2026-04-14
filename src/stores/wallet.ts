@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { useStorage } from '@vueuse/core'
 import { parseISO, subMonths } from 'date-fns'
 import { db } from '@/services/firebase'
 import { collection, doc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, setDoc, query, where, serverTimestamp } from 'firebase/firestore'
@@ -34,8 +33,8 @@ export type ApiExpense = {
 export const useWalletStore = defineStore('wallet', () => {
   const authStore = useAuthStore()
 
-  // local personalization
-  const familyName = useStorage<string>('sw-family-name', '', localStorage)
+  // family name – populated from Firestore
+  const familyName = ref<string>('')
 
   const members = ref<ApiMember[]>([])
   const expenses = ref<ApiExpense[]>([])
@@ -96,14 +95,26 @@ export const useWalletStore = defineStore('wallet', () => {
   async function refreshSettings() {
     try {
       const snap = await getDoc(doc(db, 'families', getFamilyId()))
-      if (snap.exists() && snap.data().settings) {
-        const s = snap.data().settings
-        monthlyBudget.value = s.monthlyBudget || 0
-        categories.value = s.categories?.length ? s.categories : [...EXPENSE_CATEGORIES]
+      if (snap.exists()) {
+        const data = snap.data()
+        // Load family name from DB
+        if (data.name) familyName.value = data.name
+        if (data.settings) {
+          const s = data.settings
+          monthlyBudget.value = s.monthlyBudget || 0
+          categories.value = s.categories?.length ? s.categories : [...EXPENSE_CATEGORIES]
+        }
       }
     } catch {
       //
     }
+  }
+
+  async function updateFamilyName(name: string) {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    await updateDoc(doc(db, 'families', getFamilyId()), { name: trimmed })
+    familyName.value = trimmed
   }
 
   async function refreshExpenses(filters?: Partial<HistoryFilters>) {
@@ -357,6 +368,7 @@ export const useWalletStore = defineStore('wallet', () => {
     deleteExpense,
     changeFamilyPin,
     setMonthlyBudget,
+    updateFamilyName,
     updateNickname,
     removeMember,
     createMember,
