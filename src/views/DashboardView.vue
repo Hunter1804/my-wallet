@@ -160,14 +160,15 @@ const budgetDraft = ref('')
 const categoryBudgetsDraft = ref<Record<string, string>>({})
 const budgetViewMode = ref<'total' | 'category'>('total')
 
-const formattedBudget = computed({
-  get: () => {
-    if (!budgetDraft.value) return ''
-    return Number(budgetDraft.value).toLocaleString('vi-VN')
-  },
-  set: (val: string) => {
-    budgetDraft.value = val.replace(/\D/g, '')
-  }
+const budgetTotalDraft = computed(() => {
+  return Object.values(categoryBudgetsDraft.value).reduce((sum, val) => {
+    const n = Number(val.replace(/\D/g, ''))
+    return sum + (Number.isFinite(n) ? n : 0)
+  }, 0)
+})
+
+const formattedBudget = computed(() => {
+  return budgetTotalDraft.value.toLocaleString('vi-VN')
 })
 
 function formatInput(val: string) {
@@ -208,27 +209,18 @@ function openBudgetEditor() {
 }
 
 function saveBudget() {
-  if (budgetViewMode.value === 'total') {
-    const raw = budgetDraft.value.replace(/\D/g, '')
-    const n = Math.round(Number(raw))
-    store.setMonthlyBudget(Number.isFinite(n) ? n : 0)
-  } else {
-    const newBudgets: Record<string, number> = {}
-    Object.entries(categoryBudgetsDraft.value).forEach(([cat, val]) => {
-      const n = Math.round(Number(val.replace(/\D/g, '')))
-      if (n > 0) newBudgets[cat] = n
-    })
-    store.setCategoryBudgets(newBudgets)
-  }
+  const newBudgets: Record<string, number> = {}
+  Object.entries(categoryBudgetsDraft.value).forEach(([cat, val]) => {
+    const n = Math.round(Number(val.replace(/\D/g, '')))
+    if (n > 0) newBudgets[cat] = n
+  })
+  // Always save category budgets which now also updates monthlyBudget in the store
+  store.setCategoryBudgets(newBudgets)
   budgetEditing.value = false
 }
 
 function clearBudget() {
-  if (budgetViewMode.value === 'total') {
-    store.setMonthlyBudget(0)
-  } else {
-    store.setCategoryBudgets({})
-  }
+  store.setCategoryBudgets({})
   budgetEditing.value = false
 }
 
@@ -422,27 +414,35 @@ async function togglePush() {
           class="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/35"
         >
           <div v-if="budgetViewMode === 'total'">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 block" for="budget">Hạn mức tổng (VND)</label>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-bold text-slate-700 dark:text-slate-200" for="budget">Hạn mức tổng (VND)</label>
+              <span class="text-[10px] italic text-slate-500">(Tính từ tổng các hạng mục)</span>
+            </div>
             <input
               id="budget"
-              v-model="formattedBudget"
-              inputmode="numeric"
-              placeholder="Ví dụ: 8,000,000"
-              class="h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              @keyup.enter="saveBudget"
+              :value="formattedBudget"
+              readonly
+              placeholder="0"
+              class="h-12 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm font-semibold text-slate-500 shadow-sm focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
             />
           </div>
-          <div v-else class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-            <div v-for="cat in expenseCategories" :key="`edit-${cat}`">
-              <label class="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block mb-1" :for="`budget-${cat}`">{{ cat }}</label>
-              <input
-                :id="`budget-${cat}`"
-                v-model="categoryBudgetsDraft[cat]"
-                inputmode="numeric"
-                placeholder="0"
-                class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                @input="categoryBudgetsDraft[cat] = formatInput(String(categoryBudgetsDraft[cat]))"
-              />
+          <div v-else class="space-y-3">
+            <div class="p-3 mb-2 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/50 flex justify-between items-center">
+               <span class="text-xs font-bold text-primary-700 dark:text-primary-300">Tổng cộng dự kiến:</span>
+               <span class="text-sm font-display font-bold text-primary-700 dark:text-primary-300">{{ formattedBudget }} đ</span>
+            </div>
+            <div class="max-h-[300px] overflow-y-auto pr-1 space-y-3">
+              <div v-for="cat in expenseCategories" :key="`edit-${cat}`">
+                <label class="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block mb-1" :for="`budget-${cat}`">{{ cat }}</label>
+                <input
+                  :id="`budget-${cat}`"
+                  v-model="categoryBudgetsDraft[cat]"
+                  inputmode="numeric"
+                  placeholder="0"
+                  class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  @input="categoryBudgetsDraft[cat] = formatInput(String(categoryBudgetsDraft[cat]))"
+                />
+              </div>
             </div>
           </div>
 

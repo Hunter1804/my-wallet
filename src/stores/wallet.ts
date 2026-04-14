@@ -259,8 +259,10 @@ export const useWalletStore = defineStore('wallet', () => {
   }
 
   async function setCategoryBudgets(budgets: Record<string, number>) {
+    const total = Object.values(budgets).reduce((acc, val) => acc + val, 0)
     await updateDoc(doc(db, 'families', getFamilyId()), {
-      'settings.categoryBudgets': budgets
+      'settings.categoryBudgets': budgets,
+      'settings.monthlyBudget': total,
     })
     await refreshSettings()
   }
