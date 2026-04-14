@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    height: 100%;
+  }
+
+  body {
+    @apply min-h-full antialiased text-slate-900;
+  }
+
+  .dark body {
+    @apply text-slate-50;
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Route change: syncs with bottom tab navigation */
+.tab-page-enter-active {
+  transition:
+    opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tab-page-leave-active {
+  transition:
+    opacity 0.22s cubic-bezier(0.4, 0, 1, 1),
+    transform 0.22s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.tab-page-enter-from {
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+}
+
+.tab-page-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.995);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .tab-page-enter-from,
+  .tab-page-leave-to {
+    transform: none !important;
+  }
+}
