@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { format } from 'date-fns'
 import { storeToRefs } from 'pinia'
 import { useWalletStore } from '@/stores/wallet'

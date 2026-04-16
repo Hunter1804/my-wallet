@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import Modal from '@/components/Modal.vue'
 import TransactionForm from '@/components/TransactionForm.vue'
 import type { Expense } from '@/types/wallet'
+import { formatCurrencyVnd } from '@/utils/format'
 
 const store = useWalletStore()
 const auth = useAuthStore()
