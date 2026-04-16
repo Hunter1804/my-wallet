@@ -189,6 +189,23 @@ export const useWalletStore = defineStore('wallet', () => {
     await refreshExpenses()
   }
 
+  async function updateExpense(id: string, input: {
+    payerUserId: string
+    amount: number
+    category: string
+    description: string
+    paidAt: string
+  }) {
+    const d = parseISO(input.paidAt)
+    await updateDoc(doc(db, 'families', getFamilyId(), 'expenses', id), {
+      ...input,
+      paidYear: d.getFullYear(),
+      paidMonth: d.getMonth() + 1,
+      updatedAt: serverTimestamp()
+    })
+    await refreshExpenses()
+  }
+
   async function deleteExpense(id: string) {
     await deleteDoc(doc(db, 'families', getFamilyId(), 'expenses', id))
     expenses.value = expenses.value.filter((e) => e._id !== id)
@@ -390,6 +407,7 @@ export const useWalletStore = defineStore('wallet', () => {
     refreshSettings,
     refreshExpenses,
     createExpense,
+    updateExpense,
     deleteExpense,
     changeFamilyPin,
     setMonthlyBudget,

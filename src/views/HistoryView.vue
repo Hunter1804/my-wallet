@@ -5,9 +5,10 @@ import { storeToRefs } from 'pinia'
 import { parseISO } from 'date-fns'
 import { useWalletStore } from '@/stores/wallet'
 import type { HistoryFilters } from '@/types/wallet'
-import TransactionCard from '@/components/TransactionCard.vue'
-import { formatCurrencyVnd } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
+import Modal from '@/components/Modal.vue'
+import TransactionForm from '@/components/TransactionForm.vue'
+import type { Expense } from '@/types/wallet'
 
 const store = useWalletStore()
 const auth = useAuthStore()
@@ -101,6 +102,25 @@ function resetFilters() {
 function onDelete(id: string) {
   if (!confirm('Xóa giao dịch này?')) return
   store.deleteExpense(id).catch((e) => alert(auth.getErrorMessage(e)))
+}
+
+const editingExpense = ref<Expense | null>(null)
+const showEditModal = ref(false)
+
+function onEdit(expense: Expense) {
+  editingExpense.value = expense
+  showEditModal.value = true
+}
+
+function handleUpdate(data: any) {
+  if (!editingExpense.value) return
+  store
+    .updateExpense(editingExpense.value.id, data)
+    .then(() => {
+      showEditModal.value = false
+      editingExpense.value = null
+    })
+    .catch((e) => alert(auth.getErrorMessage(e)))
 }
 </script>
 
@@ -199,7 +219,22 @@ function onDelete(id: string) {
         :payer="(store.memberById(e.payerId) as any)"
         :is-owner="e.payerId === auth.currentUser?.id"
         @delete="onDelete"
+        @edit="onEdit"
       />
+
+      <Modal
+        :show="showEditModal"
+        title="Sửa giao dịch"
+        @close="showEditModal = false"
+      >
+        <TransactionForm
+          v-if="editingExpense"
+          :initial-data="editingExpense"
+          is-editing
+          @submit="handleUpdate"
+          @cancel="showEditModal = false"
+        />
+      </Modal>
 
       <div
         v-if="list.length === 0"

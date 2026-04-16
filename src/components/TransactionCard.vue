@@ -14,6 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   delete: [id: string]
+  edit: [expense: Expense]
 }>()
 
 const when = computed(() =>
@@ -57,14 +58,22 @@ const when = computed(() =>
         <p class="font-display text-lg font-semibold tracking-tight text-slate-900 dark:text-white">
           {{ formatCurrencyVnd(expense.amount) }}
         </p>
-        <button
-          type="button"
-          class="mt-2 cursor-pointer text-xs font-semibold text-rose-600 transition hover:text-rose-700 focus-visible:outline-none dark:text-rose-400 dark:hover:text-rose-300"
-          :class="isOwner ? '' : 'hidden'"
-          @click="emit('delete', expense.id)"
-        >
-          Xóa
-        </button>
+        <div class="mt-2 flex items-center justify-end gap-3" :class="isOwner ? '' : 'hidden'">
+          <button
+            type="button"
+            class="cursor-pointer text-xs font-semibold text-primary-600 transition hover:text-primary-700 focus-visible:outline-none dark:text-primary-400 dark:hover:text-primary-300"
+            @click="emit('edit', expense)"
+          >
+            Sửa
+          </button>
+          <button
+            type="button"
+            class="cursor-pointer text-xs font-semibold text-rose-600 transition hover:text-rose-700 focus-visible:outline-none dark:text-rose-400 dark:hover:text-rose-300"
+            @click="emit('delete', expense.id)"
+          >
+            Xóa
+          </button>
+        </div>
       </div>
     </div>
   </article>
