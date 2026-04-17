@@ -19,6 +19,17 @@
   input, textarea, select {
     font-size: 16px !important;
   }
+
+  /* Style the native date picker icon for better visibility */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px;
+  }
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
 }
 
 .fade-enter-active,

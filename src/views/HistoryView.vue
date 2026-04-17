@@ -8,6 +8,7 @@ import type { HistoryFilters } from '@/types/wallet'
 import { useAuthStore } from '@/stores/auth'
 import Modal from '@/components/Modal.vue'
 import TransactionForm from '@/components/TransactionForm.vue'
+import TransactionCard from '@/components/TransactionCard.vue'
 import type { Expense } from '@/types/wallet'
 import { formatCurrencyVnd } from '@/utils/format'
 
@@ -213,7 +214,7 @@ function handleUpdate(data: any) {
     </section>
 
     <section class="space-y-3">
-      <TransactionCard
+      <TransactionCard  
         v-for="e in list"
         :key="e.id"
         :expense="e"
