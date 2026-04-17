@@ -166,7 +166,7 @@ function handleSubmit() {
             type="date"
             class="mt-1 h-14 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
             :class="touched && errors.paidAt ? 'border-rose-400 ring-2 ring-rose-500/15' : ''"
-            @click="($event.target as HTMLDataElement).showPicker?.()"
+            @click="($event.target as any).showPicker?.()"
           />
           <p v-if="touched && errors.paidAt" class="mt-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
             {{ errors.paidAt }}
