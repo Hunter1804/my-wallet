@@ -267,10 +267,55 @@ async function togglePush() {
     }
   }
 }
+
+const isSapaVisible = computed(() => {
+  const now = new Date()
+  // Automatically hide after May 4, 2026
+  const deadline = new Date('2026-05-05T00:00:00')
+  return now < deadline
+})
 </script>
 
 <template>
   <div class="space-y-5 pb-2">
+    <!-- SAPA ITINERARY BANNER -->
+    <RouterLink
+      v-if="isSapaVisible"
+      to="/itinerary"
+      class="group relative block overflow-hidden rounded-3xl border border-amber-200/50 bg-gradient-to-r from-emerald-800 via-emerald-700 to-amber-600 p-px shadow-xl shadow-emerald-900/20 ring-1 ring-white/20 transition-all hover:scale-[1.02] active:scale-[0.98] dark:border-amber-500/20 dark:from-emerald-900 dark:to-amber-900"
+    >
+      <div class="relative flex flex-col items-center justify-center rounded-[23px] bg-emerald-900/10 px-6 py-6 backdrop-blur-sm">
+        <!-- Floating Elements -->
+        <div class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-400/20 blur-2xl animate-pulse" />
+        <div class="absolute -left-6 -bottom-6 h-24 w-24 rounded-full bg-emerald-400/20 blur-2xl animate-pulse" style="animation-delay: 1s" />
+
+        <div class="relative z-10 flex w-full flex-col items-center gap-4">
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-2xl shadow-inner backdrop-blur-md">🏔️</span>
+            <div>
+              <h3 class="font-display text-xl font-bold tracking-tight text-white">Lịch trình du lịch</h3>
+              <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-200/80">Khám phá sương mù Sapa</p>
+            </div>
+          </div>
+
+          <!-- MARQUEE -->
+          <div class="relative flex w-full items-center overflow-hidden rounded-full bg-black/20 py-2.5 shadow-inner backdrop-blur-md">
+            <div class="flex animate-marquee whitespace-nowrap">
+              <span class="mx-4 text-xs font-bold text-amber-50">✦ Kế hoạch du lịch 30/5 - 1/5 Sapa ✦</span>
+              <span class="mx-4 text-xs font-bold text-amber-50">✦ Kế hoạch du lịch 30/5 - 1/5 Sapa ✦</span>
+              <span class="mx-4 text-xs font-bold text-amber-50">✦ Kế hoạch du lịch 30/5 - 1/5 Sapa ✦</span>
+              <span class="mx-4 text-xs font-bold text-amber-50">✦ Kế hoạch du lịch 30/5 - 1/5 Sapa ✦</span>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-2 text-xs font-bold text-white transition-all group-hover:translate-x-1">
+            Xem ngay chi tiết
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </div>
+        </div>
+      </div>
+    </RouterLink>
+
     <section
       class="relative overflow-hidden rounded-3xl border border-white/40 bg-gradient-to-br from-primary-500/95 via-sky-500/90 to-cyan-600/95 p-5 text-white shadow-lg shadow-primary-500/25 dark:border-white/10 dark:from-primary-600/55 dark:via-sky-700/45 dark:to-cyan-900/40"
     >

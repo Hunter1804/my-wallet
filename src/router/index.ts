@@ -47,6 +47,12 @@ const router = createRouter({
       component: () => import('@/views/MembersView.vue'),
       meta: { title: 'Thành viên', tab: 'members' },
     },
+    {
+      path: '/itinerary',
+      name: 'itinerary',
+      component: () => import('@/views/SapaItineraryView.vue'),
+      meta: { title: 'Lịch trình Sapa', shell: false },
+    },
   ],
   scrollBehavior() {
     return { top: 0 }
